@@ -1,0 +1,81 @@
+.section/dm vars;
+
+.var/circ buffer[64] = 0,0,0,0,0,0,0,0,
+					   0,0,0,0,0,0,0,0,
+					   0,0,0,0,0,0,0,0,
+					   0,0,0,0,0,0,0,0,
+					   0,0,0,0,0,0,0,0,
+					   0,0,0,0,0,0,0,0,
+					   0,0,0,0,0,0,0,0,
+					   0,0,0,0,0,0,0,0;
+.var prev_sample = 0;
+.section/pm program;
+
+jump start; rti; rti; rti; // reset
+		rti; rti; rti; rti; 
+		rti; rti; rti; rti; 
+		rti; rti; rti; rti; 
+		rti; rti; rti; rti; 
+		rti; rti; rti; rti; 
+		rti; rti; rti; rti; 
+		rti; rti; rti; rti; 
+		rti; rti; rti; rti; 
+		rti; rti; rti; rti; 
+		jump interupt; rti; rti; rti; // timer
+		rti; rti; rti; rti; 
+
+start:
+	i0=buffer; l0=length(buffer);
+	i1=buffer; l1=length(buffer);
+	m1=1;
+	ar = 0;
+	dm(prev_sample) = ar;
+	ena ar_sat;
+	
+	ar= 4;
+	dm(0x3ffb) = ar; // TSCALE
+	//T = 125 mks
+	ar=4;
+	dm(0x3ffc) = ar; // TCOUNT
+	dm(0x3ffd) = ar; // TPERIOD
+		
+	ifc = 0x00ff; nop;
+		
+	ena timer;
+	imask = b#0000000001; nop;
+cycle: 
+	call transform;
+	jump cycle;
+
+interupt: ax0=io(0);
+		  dm(i0,m1) = ax0;
+		  // code
+		  rti;
+	
+transform: ax0=dm(i1,m1);
+		   ay0 = dm(prev_sample);
+		   ar = ax0 - ay0;
+		   dm(prev_sample) = ar;
+		   
+		   sr0 = ar; 
+		   si = 8;  
+		   sr = ashift sr0 by -8 (LO);
+    	   ax1 = sr0;               
+    	   ay1 = 7;   
+    	   ar = ax1 - ay1;
+    	   IF gt jump skip_ax1_ay1;
+    	   ax1 = ay1;
+    	   skip_ax1_ay1:
+    	   ay1 = -8;      // ay1 = -8
+    	   ar = ax1 - ay1;
+    	   IF lt jump skip_ax1_ay1_2;  
+    	   ax1 = ay1; // ???? ax1 < -8, ?? ax1 = -8
+    	   skip_ax1_ay1_2:
+    	   io(1) = ax1;
+    	   sr0 = ax1;
+      	   sr = ashift sr0 by 8 (LO); // sr0 = quantized_code * 256
+    	   ar = sr0;       
+      	   ax0 = ar;      
+           ar = ax0 + ay0;  
+      	   dm(prev_sample) = ar;
+		   rts;

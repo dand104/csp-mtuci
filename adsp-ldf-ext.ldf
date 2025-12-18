@@ -1,0 +1,34 @@
+ARCHITECTURE(ADSP-2181)
+
+SEARCH_DIR( $ADI_DSP\218x\lib )
+
+$OBJECTS = $COMMAND_LINE_OBJECTS ;
+
+MEMORY
+{
+    seg_program { TYPE(PM RAM) START(0x000000) END(0x000fff) WIDTH(24) }
+ seg_vars   { TYPE(DM RAM) START(0x000000) END(0x002fff) WIDTH(16) }
+    seg_varsp  { TYPE(PM RAM) START(0x001000) END(0x001fff) WIDTH(24) }
+}
+
+PROCESSOR p0
+{
+    LINK_AGAINST( $COMMAND_LINE_LINK_AGAINST)
+    OUTPUT( $COMMAND_LINE_OUTPUT_FILE )
+
+    SECTIONS
+    {
+        sec_program
+        { 
+            INPUT_SECTIONS( $OBJECTS(program) )
+        } >seg_program
+  sec_vars
+        { 
+            INPUT_SECTIONS( $OBJECTS(vars) )
+        } >seg_vars
+sec_varsp
+        { 
+            INPUT_SECTIONS( $OBJECTS(varsp) )
+        } >seg_varsp
+    }
+}
